@@ -1,20 +1,26 @@
+// order-service/main.go
 package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"stockpulse/internal/api"
+	"order-service/internal/db"
+	"log"
+	"github.com/joho/godotenv"
+	handlers "order-service/internal/api" 
+	"order-service/internal/models"
 )
 
 func main() {
+	if err := godotenv.Load(); err != nil {
+    log.Println("No .env file found inside container, using docker-compose environment variables.")
+	}
+
+	db.InitDB()
+	db.DB.AutoMigrate(&models.Order{})
+
 	router := gin.Default()
-
-	// Health check
-	router.GET("/health", func(c *gin.Context) {
-		c.JSON(200, gin.H{"status": "StockPulse backend is healthy and running!"})
-	})
-
-	// Stock routes
-	api.RegisterRoutes(router)
+	router.POST("/order", handlers.CreateOrder)
+	router.GET("/order/:id", handlers.GetOrder)
 
 	router.Run(":8080")
 }

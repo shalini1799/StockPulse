@@ -1,30 +1,36 @@
-package api
+// order-service/handlers/order.go
+package handlers
 
 import (
 	"net/http"
-	"stockpulse/internal/model"
-	"stockpulse/internal/repository"
-	"stockpulse/internal/service"
-
 	"github.com/gin-gonic/gin"
+	"order-service/internal/models"
+	"order-service/internal/db"
 )
 
-func RegisterRoutes(router *gin.Engine) {
-	repo := repository.NewStockRepository()
-	svc := service.NewStockService(repo)
+func CreateOrder(c *gin.Context) {
+	var order models.Order
+	if err := c.ShouldBindJSON(&order); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
-	router.POST("/stocks", func(c *gin.Context) {
-		var stock model.Stock
-		if err := c.ShouldBindJSON(&stock); err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-			return
-		}
-		svc.AddStock(stock)
-		c.JSON(http.StatusOK, gin.H{"message": "Stock added"})
-	})
+	if err := db.DB.Create(&order).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not create order"})
+		return
+	}
 
-	router.GET("/stocks", func(c *gin.Context) {
-		stocks := svc.ListStocks()
-		c.JSON(http.StatusOK, stocks)
-	})
+	c.JSON(http.StatusOK, gin.H{"message": "Order placed successfully", "order_id": order.ID})
+}
+
+func GetOrder(c *gin.Context) {
+	id := c.Param("id")
+	var order models.Order
+
+	if err := db.DB.First(&order, id).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, order)
 }
