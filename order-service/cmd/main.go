@@ -16,6 +16,7 @@ func main() {
 	}
 
 	db.InitDB()
+	//create the orders table if it doesn't exist
 	db.DB.AutoMigrate(&models.Order{})
 
 	router := gin.Default()

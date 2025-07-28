@@ -22,5 +22,17 @@ services:
     depends_on:
       - mysql
 
+  inventory-service:
+    build:
+      context: ../inventory-service
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    env_file:
+      - ../inventory-service/.env
+    depends_on:
+      - mysql
+
+
 volumes:
   mysql_data:
