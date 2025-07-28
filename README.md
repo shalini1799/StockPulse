@@ -51,18 +51,28 @@ It now also includes a **React + Tailwind** frontend to visualize and interact w
 
 ```mermaid
 graph TD
-  A[User] -->|REST /order| B(Order Service)
-  B -->|Kafka: order.placed| C(Kafka Broker)
-  C --> D(Inventory Service via gRPC)
-  D -->|Redis + MySQL| E(DB Layer)
-
   subgraph UI
-    A
+    A[🧑 User] -->|Place Order| B[🌐 Frontend (React)]
   end
 
   subgraph Backend
-    B
-    C
-    D
-    E
+    B -->|POST /order| C[📦 Order Service (REST)]
+    C -->|📤 Kafka Event: OrderPlaced| D[(Kafka Broker)]
+    D -->|📥 Consume Event| E[📦 Inventory Service (gRPC)]
+    E -->|Check Stock + Update| F[(🧠 Redis Cache)]
+    E -->|Fallback & Persist| G[(🗄️ MySQL DB)]
   end
+
+  F -->|Cache Miss| G
+
+---
+
+### 📝 Notes:
+
+- **Frontend** communicates with **Order Service** over REST.
+- **Order Service** produces an event to **Kafka** upon successful order placement.
+- **Inventory Service** listens to Kafka topic (e.g., `order.placed`) and adjusts stock.
+- Inventory cache is maintained in **Redis**, with fallback to **MySQL**.
+- All services are containerized and orchestrated via **Docker** / **Kubernetes**.
+
+Would you like a PNG version for portfolio or LinkedIn sharing?
