@@ -10,9 +10,8 @@ import (
 	"os"
 )
 
-var DB *gorm.DB
 
-func InitDB() {
+func InitDB() *gorm.DB {
 	var database *gorm.DB
 	var err error
 
@@ -35,5 +34,5 @@ func InitDB() {
 		panic("Failed to connect to database after retries: " + err.Error())
 	}
 
-	DB = database
+	return database
 }

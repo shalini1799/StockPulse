@@ -7,7 +7,7 @@ import (
 	"log"
 	"github.com/joho/godotenv"
 	handlers "order-service/internal/api" 
-	"order-service/internal/models"
+	request_models "order-service/internal/models/request_models"
 )
 
 func main() {
@@ -15,13 +15,14 @@ func main() {
     log.Println("No .env file found inside container, using docker-compose environment variables.")
 	}
 
-	db.InitDB()
+	db := db.InitDB()
 	//create the orders table if it doesn't exist
-	db.DB.AutoMigrate(&models.Order{})
+	db.AutoMigrate(&request_models.Order{})
+
+	orderService := &handlers.OrderService{DB: db}
 
 	router := gin.Default()
-	router.POST("/order", handlers.CreateOrder)
-	router.GET("/order/:id", handlers.GetOrder)
+	router.POST("/order", orderService.CreateOrder)
 
 	router.Run(":8080")
 }
