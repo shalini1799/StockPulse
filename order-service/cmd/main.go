@@ -23,6 +23,7 @@ func main() {
 
 	router := gin.Default()
 	router.POST("/order", orderService.CreateOrder)
+	router.GET("/fetch-order",  orderService.GetOrder)
 
 	router.Run(":8080")
 }

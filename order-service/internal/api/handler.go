@@ -43,6 +43,7 @@ func (handler *OrderService) CreateOrder(c *gin.Context) {
 		if err != nil {
 			ordersData = append(ordersData, response_models.OrdersData{
 				ProductID: item.ProductID,
+				ProductName: item.ProductName,
 				Error:     err.Error(),
 			})
 			continue
@@ -77,6 +78,20 @@ func (handler *OrderService) CreateOrder(c *gin.Context) {
 	})
 }
 
+func (handler *OrderService) GetOrder(c *gin.Context) {
+	var orders []request_models.Order
+	if err := handler.DB.Find(&orders).Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch orders"})
+		return
+	}
+
+	if len(orders) == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"message": "No orders found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"orders": orders})
+}
 
 func checkStock(id int, db *gorm.DB) (bool, request_models.Inventory, error) {
 
