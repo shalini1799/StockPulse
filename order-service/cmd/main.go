@@ -23,7 +23,9 @@ func main() {
 
 	router := gin.Default()
 	router.POST("/order", orderService.CreateOrder)
-	router.GET("/fetch-order",  orderService.GetOrder)
+	router.GET("/fetch-order",  orderService.GetAllOrders)
+	router.PUT("/update-order", orderService.UpdateOrder)
+	router.DELETE("/delete-order/:order_id", orderService.DeleteOrder)
 
 	router.Run(":8080")
 }

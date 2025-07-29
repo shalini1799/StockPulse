@@ -3,8 +3,10 @@ package handlers
 
 import (
 	"net/http"
+	"order-service/constant"
 	request_models "order-service/internal/models/request_models"
 	response_models "order-service/internal/models/response_models"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -78,7 +80,7 @@ func (handler *OrderService) CreateOrder(c *gin.Context) {
 	})
 }
 
-func (handler *OrderService) GetOrder(c *gin.Context) {
+func (handler *OrderService) GetAllOrders(c *gin.Context) {
 	var orders []request_models.Order
 	if err := handler.DB.Find(&orders).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not fetch orders"})
@@ -92,6 +94,93 @@ func (handler *OrderService) GetOrder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{"orders": orders})
 }
+
+func(handler *OrderService) UpdateOrder(c *gin.Context) {
+
+	tx := handler.DB.Begin()
+
+	var updatedOrder request_models.Order
+	if err := c.ShouldBindJSON(&updatedOrder); err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	//check order status
+	if err := handler.DB.First(&updatedOrder, updatedOrder.ID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+	if updatedOrder.Status == constant.OrderStatusShipped {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Order cannot be updated if it is shipped"})
+		return
+	}
+
+	if updatedOrder.Status == constant.OrderStatusPending {
+		tx.Model(&request_models.Order{}).Where("id = ?", updatedOrder.ID).Updates(updatedOrder)
+		if err := tx.Error; err != nil {	
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not update order"})
+			return
+		}
+
+		tx.Commit()
+		c.JSON(http.StatusOK, gin.H{"message": "Order updated successfully", "order": updatedOrder})
+	}
+	
+}
+
+func(handler *OrderService) DeleteOrder(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("order_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	tx := handler.DB.Begin()
+
+	//check order status
+	var updatedOrder request_models.Order
+	if err := tx.First(&updatedOrder, orderID).Error; err != nil {
+		tx.Rollback()
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	if updatedOrder.Status == constant.OrderStatusShipped {
+		tx.Rollback()
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Order cannot be cancelled once if it is shipped"})
+		return
+	}
+
+	if updatedOrder.Status == constant.OrderStatusPending {
+		if err := tx.Model(&request_models.Order{}).Where("id = ?", orderID).Update("status", "cancelled").Error; err != nil {
+			tx.Rollback()
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Could not cancel order"})
+			return
+		}
+ 	}
+
+	tx.Commit()
+	c.JSON(http.StatusOK, gin.H{"message": "Order cancelled successfully"})
+}
+
+func (handler *OrderService) GetOrderByID(c *gin.Context) {
+	orderID, err := strconv.Atoi(c.Param("order_id"))
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid order ID"})
+		return
+	}
+
+	var order request_models.Order
+	if err := handler.DB.First(&order, orderID).Error; err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Order not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"order": order})
+}	
 
 func checkStock(id int, db *gorm.DB) (bool, request_models.Inventory, error) {
 

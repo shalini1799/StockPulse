@@ -9,6 +9,7 @@ type Order struct {
 	ProductID    int       `json:"product_id"`
 	ProductName  string    `json:"product_name"`
 	Quantity     int       `json:"quantity"`
-	//Status 	 string    `json:"status"`
-	CreatedAt    time.Time `json:"created_at"`
+	Status 	     string    `json:"status"`
+	CreatedAt    time.Time `json:"created_at" gorm:"autoCreateTime`
+	UpdatedAt	time.Time `json:"updated_at" gorm:"autoUpdateTime"`
 }
